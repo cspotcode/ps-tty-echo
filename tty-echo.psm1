@@ -1,8 +1,8 @@
 Import-Module "$PSScriptRoot/csharp-compiler.psm1"
-if(Test-Path './_compiled') {
+if(Test-Path './TermiosInteropAssembly') {
     [Reflection.Assembly]::LoadFile((Resolve-Path './_compiled'))
 } else {
-    Compile-Csharp -SourceFile "$PSScriptRoot/TermiosInterop.cs" -Unsafe -OutputFile './_compiled'
+    Compile-Csharp -SourceFile "$PSScriptRoot/TermiosInterop.cs" -Unsafe -OutputFile "$PSScriptRoot/TermiosInteropAssembly"
 }
 
 # Note to self: /usr/include/x86_64-linux-gnu/bits/termios.h
@@ -72,7 +72,11 @@ Function GetEchoBit([Cspotcode.TermiosInterop+Termios]$termios) {
     ($termios."c_$byte_affected" -band $bit_affected) -ne 0
 }
 
-Function Set-TtyEcho([boolean]$state) {
+Function Set-TtyEcho {
+    param(
+        [Parameter(Mandatory)]
+        [boolean] $state
+    )
     $termios = gettermios
     SetEchoBit ([ref]$termios) $state
     settermios $termios
@@ -81,4 +85,9 @@ Function Set-TtyEcho([boolean]$state) {
 Function Get-TtyEcho() {
     $termios = gettermios
     GetEchoBit $termios
+}
+
+Function getbytebitaffected {
+    $byte_affected
+    $bit_affected
 }
