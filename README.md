@@ -10,8 +10,21 @@ Linux has a `stty` utility that can turn echo on and off, but invoking an extern
 
 My solution is to turn on and off echo via `stty` and observe which bit in the data structure changes.  This is messy hack, but it lets us detect at runtime the bit we need to manipulate without compiling against platform-specific header files.  After that, we can call `tcgetattr` and `tcsetattr` in-process and flip the correct bit, without any process-spawning overhead.
 
+## Adding to your $PROFILE
+
+```powershell
+Import-Module ./path/to/tty-echo.psd1
+function PSConsoleHostReadLine {
+    $echoState = Get-TtyEcho
+    Set-TtyEcho $false
+    Microsoft.PowerShell.Core\Set-StrictMode -Off
+    [Microsoft.PowerShell.PSConsoleReadLine]::ReadLine($host.Runspace, $ExecutionContext)
+    Set-TtyEcho $echoState
+}
+```
+
 ## Other implementation details
 
-"csharp-compiler.psm1" exposes a function to compile CSharp with the `/AllowUnsafe` flag on PowerShell Core.  It also lets us cache the compiled assembly to disk.
+"csharp-compiler.psm1" exposes a function to compile CSharp with the `/AllowUnsafe` flag on PowerShell Core.  It also lets us cache the compiled assembly to disk.  This could be spun into or replaced by an external module.
 
-"TermiosInterop.cs" exposes bindings to `tcgetattr` and `tcsetattr` as well as a struct granting raw access to the first 32 bytes of a memory buffer.  This is enough to read the ECHO bit from Linux's termios struct.
+"TermiosInterop.cs" exposes bindings to `tcgetattr` and `tcsetattr` as well as a struct granting raw access to the first 32 bytes of a memory buffer.  This is enough to read the ECHO bit from Linux's termios struct.  I used 32 fields instead of one array because I was in a hurry and don't understand C# very well.
